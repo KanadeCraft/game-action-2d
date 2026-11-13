@@ -6,6 +6,7 @@ public class PlayerInputReader : MonoBehaviour
     float moveValue; // 入力値を格納する変数
     bool jumpValue; // ジャンプの入力値を格納する変数
     Vector2 gravityValue; // 重力の入力方向を格納する変数
+    bool restartValue; // リスタートの入力値を格納する変数
 
     // Moveのアクション操作が行われた場合の処理
     void OnMove(InputValue value)
@@ -23,6 +24,12 @@ public class PlayerInputReader : MonoBehaviour
     void OnGravityDirection(InputValue value)
     {
         gravityValue = value.Get<Vector2>(); // GravityDirectionの入力値を取得している
+    }
+
+    // Restartのアクション操作が行われた場合の処理
+    void OnRestart(InputValue value)
+    {
+        restartValue = value.isPressed; // Restartボタンの押下状態を取得している
     }
 
     // 入力値を外部から取得できるようにするプロパティ
@@ -47,6 +54,14 @@ public class PlayerInputReader : MonoBehaviour
         get
         {
             return gravityValue;
+        }
+    }
+
+    public bool ResetInput
+    {
+        get
+        {
+            return restartValue;
         }
     }
 }

@@ -7,6 +7,7 @@ public class PlayerMotor2D : MonoBehaviour
 
     Rigidbody2D rb2D;
     float setMoveInput;
+    Vector2 previousGravity;
 
     // それぞれの最大猶予時間とそれぞれの時間を保持する変数
     float jumpBufferRemaining;
@@ -27,10 +28,17 @@ public class PlayerMotor2D : MonoBehaviour
     // 次の物理更新を保護するフラグ
     bool ignoreGroundOnce;
 
-    void Start()
+    // 箱を押す判定に使う、入力によって移動しようとしている速度。
+    // 実際の速度と違い、落下やジャンプの速度は含めない。
+    // プロパティ
+    public Vector2 RequestedMoveVelocity
     {
-        // 初期化処理
-        isGrounded = false;
+        get
+        {
+            Vector2 gravity = gravityController.GravityVector;
+            Vector2 right = new Vector2(-gravity.y, gravity.x);
+            return right * setMoveInput * moveSpeed;
+        }
     }
 
     /// <summary>
@@ -63,6 +71,9 @@ public class PlayerMotor2D : MonoBehaviour
     void Awake()
     {
         rb2D = GetComponent<Rigidbody2D>();
+        // 初期化処理
+        previousGravity = gravityController.GravityVector;
+        isGrounded = false;
     }
 
     public void SimulateMovement()
@@ -75,6 +86,22 @@ public class PlayerMotor2D : MonoBehaviour
 
         // 現在の速度を取得
         Vector2 currentVelocity = rb2D.linearVelocity;
+        // 現在の重力の方向を取得
+        Vector2 gravity = gravityController.GravityVector;
+
+        if (gravity == -previousGravity)
+        {
+            // 重力が180度変化した場合の処理
+            // 重力方向の速度を打ち消す
+            float speedAlongGravity = Vector2.Dot(currentVelocity, gravity);
+
+            if(speedAlongGravity < 0f)
+            {
+                currentVelocity -= gravity * speedAlongGravity; // 重力方向の速度を打ち消す
+            }
+        }
+
+        previousGravity = gravity;
 
         // 接地状態の確認と処理
         if (isGrounded)

@@ -4,9 +4,6 @@ public class GoalGateInteractable : MonoBehaviour
 {
     SpriteRenderer spriteRenderer;
 
-    // WallSwitchInteractable‚ÌQÆ‚ğæ“¾‚·‚é‚½‚ß‚Ì•Ï”
-    [SerializeField] WallSwitchInteractable wallSwitchInteractable;
-
     void Awake()
     {
         spriteRenderer = GetComponent<SpriteRenderer>();
@@ -14,7 +11,7 @@ public class GoalGateInteractable : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        if (collision.gameObject.tag == "Player" && wallSwitchInteractable.IsActivated)
+        if (collision.CompareTag("Player"))
         {
             spriteRenderer.color = Color.green;
         }

@@ -83,20 +83,20 @@ public class GravityBodyBox : MonoBehaviour
                 other = contact.otherCollider;
             }
 
-            Rigidbody2D otherBody = other.attachedRigidbody;
-            if (otherBody == null)
+            GameObject otherObject = other.gameObject;
+            if(!otherObject.CompareTag("Player"))
             {
                 continue;
             }
 
-            PlayerMotor2D playerMotor = otherBody.GetComponent<PlayerMotor2D>();
+            PlayerMotor2D playerMotor = otherObject.GetComponent<PlayerMotor2D>();
             if (playerMotor == null)
             {
                 continue;
             }
 
             // 古い接触情報が残っていても、今は離れていれば押していない。
-            // ただし、接触しているかどうかの判定は、接触点の距離で行う。
+            // ただし、接触しているかどうかの判定は、Collider同士の距離で確認する。
             ColliderDistance2D distance = other.Distance(boxCollider);
             if (!distance.isValid || distance.distance > Physics2D.defaultContactOffset * 2f) //測定できなかった、または許容する距離より離れているか
             {

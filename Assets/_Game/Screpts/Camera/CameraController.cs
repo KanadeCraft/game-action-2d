@@ -49,6 +49,11 @@ public class CameraController : MonoBehaviour
 
     void LateUpdate()
     {
+        NomalCamera();
+    }
+
+    void GravityCamera()
+    {
         // 現在の重力方向とGravityControllerの重力方向を比較して、異なる場合に回転を変更する
         if (currentGravityDirection != gravityController.GravityVector)
         {
@@ -97,6 +102,15 @@ public class CameraController : MonoBehaviour
         // カメラの回転を補間して滑らかにする
         transform.rotation = Quaternion.Slerp(Quaternion.Euler(currentRotation), Quaternion.Euler(targetRotation), progressSmooth);
 
+        //カメラを現在の向きから見て下方向にずらす
+        Vector2 cameraOffsetPosition = -transform.up * cameraOffset;
+
+        // カメラの位置をPlayerの位置に合わせる
+        transform.position = new Vector3(player.transform.position.x + cameraOffsetPosition.x, player.transform.position.y + cameraOffsetPosition.y, transform.position.z);
+    }
+
+    void NomalCamera()
+    {
         //カメラを現在の向きから見て下方向にずらす
         Vector2 cameraOffsetPosition = -transform.up * cameraOffset;
 

@@ -9,6 +9,9 @@ public class PlayerController : MonoBehaviour
 
     [SerializeField] PlayerVisualController visualController;
 
+    [SerializeField] StageController stageController;
+    bool restartInputFlag;
+
     //ジャンプ入力のフラグを保持する変数
     bool jumpInputFlag;
 
@@ -27,6 +30,17 @@ public class PlayerController : MonoBehaviour
 
     void Update()
     {
+        bool currentRestartInput = playerInputReader.ResetInput;
+
+        // 今回は押されていて、前回は押されていなかった
+        if (currentRestartInput && !restartInputFlag)
+        {
+            stageController.RestartStage();
+        }
+
+        // 次のUpdateで比較するために保存
+        restartInputFlag = currentRestartInput;
+
         // PlayerInputReaderから入力値を取得してPlayerMotor2Dに渡す
         playerMotor2D.SetMoveInput(playerInputReader.MoveInput);
 
