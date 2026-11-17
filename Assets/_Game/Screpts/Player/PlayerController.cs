@@ -43,6 +43,8 @@ public class PlayerController : MonoBehaviour
 
         // PlayerInputReaderから入力値を取得してPlayerMotor2Dに渡す
         playerMotor2D.SetMoveInput(playerInputReader.MoveInput);
+        playerMotor2D.SetRunInput(playerInputReader.RunInput);
+        playerMotor2D.SetSquatInput(playerInputReader.SquatInput);
 
         // 今回のボタンの状態を取得
         bool currentJumpInput = playerInputReader.JumpInput;
@@ -83,5 +85,8 @@ public class PlayerController : MonoBehaviour
 
         // PlayerMotor2DのSimulateMovementを呼び出す
         playerMotor2D.SimulateMovement();
+
+        // Motorが決めた、実際のしゃがみ状態を渡す
+        visualController.SetSquatState(playerMotor2D.IsSquatting);
     }
 }

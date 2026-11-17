@@ -4,6 +4,8 @@ using UnityEngine.InputSystem;
 public class PlayerInputReader : MonoBehaviour
 {
     float moveValue; // 入力値を格納する変数
+    bool runValue; // 走るの入力値を格納する変数
+    bool squatValue; // しゃがむの入力値を格納する変数
     bool jumpValue; // ジャンプの入力値を格納する変数
     Vector2 gravityValue; // 重力の入力方向を格納する変数
     bool restartValue; // リスタートの入力値を格納する変数
@@ -12,6 +14,18 @@ public class PlayerInputReader : MonoBehaviour
     void OnMove(InputValue value)
     {
         moveValue = value.Get<float>(); // Moveの入力値を取得している
+    }
+
+    // Ranのアクション操作が行われた場合の処理
+    void OnRun(InputValue value)
+    {
+        runValue = value.isPressed; // Runの入力値を取得している
+    }
+
+    // Squatのアクション操作が行われた場合の処理
+    void OnSquat(InputValue value)
+    {
+        squatValue = value.isPressed; // Squatの入力値を取得している
     }
 
     // Jumpのアクション操作が行われた場合の処理
@@ -38,6 +52,22 @@ public class PlayerInputReader : MonoBehaviour
         get
         {
             return moveValue;
+        }
+    }
+
+    public bool RunInput
+    {
+        get
+        {
+            return runValue;
+        }
+    }
+
+    public bool SquatInput
+    {
+        get
+        {
+            return squatValue;
         }
     }
 

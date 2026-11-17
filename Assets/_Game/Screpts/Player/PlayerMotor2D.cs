@@ -7,6 +7,8 @@ public class PlayerMotor2D : MonoBehaviour
 
     Rigidbody2D rb2D;
     float setMoveInput;
+    bool setRunInput;
+    bool setSquatInput;
     Vector2 previousGravity;
 
     // それぞれの最大猶予時間とそれぞれの時間を保持する変数
@@ -17,9 +19,16 @@ public class PlayerMotor2D : MonoBehaviour
     [Header("コヨーテタイム"), SerializeField]
     float maxCoyoteTime = 0.08f;
 
-    [Header("移動速度"), SerializeField] 
+    [Header("移動関連")]
+    [Header("移動速度"), SerializeField]
     float moveSpeed = 5f;
-    [Header("ジャンプ力"), SerializeField] 
+    [Header("走る速度"), SerializeField]
+    float runSpeed = 8f;
+    [Header("しゃがみ速度"), SerializeField]
+    float squatSpeed = 2f;
+
+    [Header("ジャンプ関連")]
+    [Header("ジャンプ力"), SerializeField]
     float jumpForce = 5f;
 
     bool isGrounded;
@@ -27,6 +36,85 @@ public class PlayerMotor2D : MonoBehaviour
 
     // 次の物理更新を保護するフラグ
     bool ignoreGroundOnce;
+
+    // それぞれの行動中のフラグを保持する変数（いつかアニメーション用）
+    bool isStopping;
+    bool isMoving;
+    bool isRunning;
+    bool isJumping;
+    bool isSquatting;
+
+    // それぞれの行動中のフラグを外部から取得できるようにするプロパティ
+    public bool IsStopping
+    {
+        get
+        {
+            return isStopping;
+        }
+    }
+
+    public bool IsMoving
+    {
+        get
+        {
+            return isMoving;
+        }
+    }
+
+    public bool IsRunning
+    {
+        get
+        {
+            return isRunning;
+        }
+    }
+
+    public bool IsJumping
+    {
+        get
+        {
+            return isJumping;
+        }
+    }
+
+    public bool IsSquatting
+    {
+        get
+        {
+            return isSquatting;
+        }
+    }
+
+    // しゃがみ状態の更新
+    void UpdateSquatState()
+    {
+        if (isGrounded && setSquatInput)
+        {
+            isSquatting = true;
+        }
+        else
+        {
+            isSquatting = false;
+        }
+    }
+
+    /// <summary>
+    /// 現在の移動速度を取得する
+    /// </summary>
+    float GetMoveSpeed()
+    {
+        if (isSquatting)
+        {
+            return squatSpeed;
+        }
+
+        if (setRunInput)
+        {
+            return runSpeed;
+        }
+
+        return moveSpeed;
+    }
 
     // 箱を押す判定に使う、入力によって移動しようとしている速度。
     // 実際の速度と違い、落下やジャンプの速度は含めない。
@@ -37,7 +125,7 @@ public class PlayerMotor2D : MonoBehaviour
         {
             Vector2 gravity = gravityController.GravityVector;
             Vector2 right = new Vector2(-gravity.y, gravity.x);
-            return right * setMoveInput * moveSpeed;
+            return right * setMoveInput * GetMoveSpeed();
         }
     }
 
@@ -47,6 +135,16 @@ public class PlayerMotor2D : MonoBehaviour
     public void SetMoveInput(float value)
     {
         setMoveInput = value;
+    }
+
+    public void SetRunInput(bool value)
+    {
+        setRunInput = value;
+    }
+
+    public void SetSquatInput(bool value)
+    {
+        setSquatInput = value;
     }
 
     public void SetJumpInput(bool value)
@@ -84,6 +182,8 @@ public class PlayerMotor2D : MonoBehaviour
             ignoreGroundOnce = false;
         }
 
+        UpdateSquatState();
+
         // 現在の速度を取得
         Vector2 currentVelocity = rb2D.linearVelocity;
         // 現在の重力の方向を取得
@@ -95,7 +195,7 @@ public class PlayerMotor2D : MonoBehaviour
             // 重力方向の速度を打ち消す
             float speedAlongGravity = Vector2.Dot(currentVelocity, gravity);
 
-            if(speedAlongGravity < 0f)
+            if (speedAlongGravity < 0f)
             {
                 currentVelocity -= gravity * speedAlongGravity; // 重力方向の速度を打ち消す
             }
@@ -112,7 +212,7 @@ public class PlayerMotor2D : MonoBehaviour
             Debug.DrawRay(rb2D.position, groundRight * 0.5f, Color.green, Time.fixedDeltaTime);
 
             // その方向・移動入力・移動速度から、currentVelocity全体を決める
-            currentVelocity = groundRight * setMoveInput * moveSpeed;
+            currentVelocity = groundRight * setMoveInput * GetMoveSpeed();
 
             // 接地中はkoyoteTimeをリセットする
             coyoteRemaining = maxCoyoteTime;
@@ -126,19 +226,19 @@ public class PlayerMotor2D : MonoBehaviour
             {
                 case { x: 0, y: 1 }:
                     // 上の処理
-                    currentVelocity.x = -setMoveInput * moveSpeed;
+                    currentVelocity.x = -setMoveInput * GetMoveSpeed();
                     break;
                 case { x: 0, y: -1 }:
                     // 下の処理
-                    currentVelocity.x = setMoveInput * moveSpeed;
+                    currentVelocity.x = setMoveInput * GetMoveSpeed();
                     break;
                 case { x: -1, y: 0 }:
                     // 左の処理
-                    currentVelocity.y = -setMoveInput * moveSpeed;
+                    currentVelocity.y = -setMoveInput * GetMoveSpeed();
                     break;
                 case { x: 1, y: 0 }:
                     // 右の処理
-                    currentVelocity.y = setMoveInput * moveSpeed;
+                    currentVelocity.y = setMoveInput * GetMoveSpeed();
                     break;
                 default:
                     // その他の処理
@@ -154,9 +254,9 @@ public class PlayerMotor2D : MonoBehaviour
         rb2D.linearVelocity = currentVelocity;
 
         //未処理のジャンプ入力があれば、接地状態を確認してジャンプ処理を行う
-        if(jumpBufferRemaining > 0f)
+        if (jumpBufferRemaining > 0f)
         {
-            if(isGrounded || coyoteRemaining > 0f)
+            if (isGrounded || coyoteRemaining > 0f)
             {
                 Jump(isGrounded);
                 jumpBufferRemaining = 0f;
@@ -169,7 +269,7 @@ public class PlayerMotor2D : MonoBehaviour
         }
 
         //　ジャンプ予約処理が終わった後
-        if(!isGrounded && coyoteRemaining > 0f)
+        if (!isGrounded && coyoteRemaining > 0f)
         {
             coyoteRemaining = Mathf.Max(0f, coyoteRemaining - Time.fixedDeltaTime);
         }
@@ -201,6 +301,5 @@ public class PlayerMotor2D : MonoBehaviour
 
         ignoreGroundOnce = true;
     }
-
 
 }

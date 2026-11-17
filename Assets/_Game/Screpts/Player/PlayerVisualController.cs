@@ -9,6 +9,9 @@ public class PlayerVisualController : MonoBehaviour
     // 移動入力の値を保持する変数
     float moveInput;
 
+    // しゃがみ状態を保持する変数
+    bool isSquatting;
+
 
     /// <summary>
     /// 外部から各種入力できるようにするメソッド 
@@ -16,6 +19,11 @@ public class PlayerVisualController : MonoBehaviour
     public void SetDirection(float value)
     {
         moveInput = value;
+    }
+
+    public void SetSquatState(bool value)
+    {
+        isSquatting = value;
     }
 
     void Awake()

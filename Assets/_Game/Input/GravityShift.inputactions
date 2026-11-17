@@ -17,6 +17,26 @@
                     "priority": 0
                 },
                 {
+                    "name": "Run",
+                    "type": "Button",
+                    "id": "059ce5b2-be2d-4e71-8f34-e8a5678e9e6c",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "Press(behavior=2)",
+                    "initialStateCheck": false,
+                    "priority": 0
+                },
+                {
+                    "name": "Squat",
+                    "type": "Button",
+                    "id": "eff9a666-547f-4dcb-8254-303050e54bcc",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "Press(behavior=2)",
+                    "initialStateCheck": false,
+                    "priority": 0
+                },
+                {
                     "name": "Jump",
                     "type": "Button",
                     "id": "0e7e121f-771d-4cbc-83f9-162d343c3fa3",
@@ -155,6 +175,28 @@
                     "processors": "",
                     "groups": "",
                     "action": "Restart",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "a17924d0-667c-45b3-9442-34ff81c56783",
+                    "path": "<Keyboard>/leftShift",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Run",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "306487b7-e326-40d1-8265-9eec05639ae1",
+                    "path": "<Keyboard>/leftCtrl",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Squat",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }
