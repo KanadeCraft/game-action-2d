@@ -30,50 +30,10 @@ public class PlayerController : MonoBehaviour
 
     void Update()
     {
-        bool currentRestartInput = playerInputReader.ResetInput;
-
-        // 今回は押されていて、前回は押されていなかった
-        if (currentRestartInput && !restartInputFlag)
-        {
-            stageController.RestartStage();
-        }
-
-        // 次のUpdateで比較するために保存
-        restartInputFlag = currentRestartInput;
-
-        // PlayerInputReaderから入力値を取得してPlayerMotor2Dに渡す
-        playerMotor2D.SetMoveInput(playerInputReader.MoveInput);
-        playerMotor2D.SetRunInput(playerInputReader.RunInput);
-        playerMotor2D.SetSquatInput(playerInputReader.SquatInput);
-
-        // 今回のボタンの状態を取得
-        bool currentJumpInput = playerInputReader.JumpInput;
-
-        // 押している間はtrue、離したらfalseを毎回渡す
-        playerMotor2D.SetJumpHeld(currentJumpInput);
-
-        // 今回は押されていて、前回は押されていなかった場合
-        if (currentJumpInput && !jumpInputFlag)
-        {
-            playerMotor2D.SetJumpInput(true);
-        }
-
-        // 次回の比較に使うため、今回の状態を保存
-        jumpInputFlag = currentJumpInput;
-
-        // 今回の重力入力の状態を取得
-        bool currentGravityInput = playerInputReader.GravityInput != Vector2.zero;
-
-        // 方向入力がある場合のみ、一度だけGravityControllerに重力向きを渡す
-        if (currentGravityInput && !changeGravityInputFlag)
-        {
-            // PlayerInputReaderから入力値を取得してGravityControllerに重力向きを渡す
-            gravityController.SetGravityDirection(playerInputReader.GravityInput);
-        }
-
-        // 次回の比較に使うため、今回の状態を保存
-        changeGravityInputFlag = currentGravityInput;
-
+        HandleRestartInput();
+        UpdateMovementInput();
+        UpdateJumpInput();
+        UpdateGravityInput();
         visualController.SetDirection(playerInputReader.MoveInput);
     }
 
@@ -91,5 +51,61 @@ public class PlayerController : MonoBehaviour
 
         // Motorが決めた、実際のしゃがみ状態を渡す
         visualController.SetSquatState(playerMotor2D.IsSquatting);
+    }
+
+    void HandleRestartInput()
+    {
+        bool currentRestartInput = playerInputReader.ResetInput;
+
+        // 今回は押されていて、前回は押されていなかった
+        if (currentRestartInput && !restartInputFlag)
+        {
+            stageController.RestartStage();
+        }
+
+        // 次のUpdateで比較するために保存
+        restartInputFlag = currentRestartInput;
+    }
+
+    void UpdateMovementInput()
+    {
+        // PlayerInputReaderから入力値を取得してPlayerMotor2Dに渡す
+        playerMotor2D.SetMoveInput(playerInputReader.MoveInput);
+        playerMotor2D.SetRunInput(playerInputReader.RunInput);
+        playerMotor2D.SetSquatInput(playerInputReader.SquatInput);
+    }
+
+    void UpdateJumpInput()
+    {
+        // 今回のボタンの状態を取得
+        bool currentJumpInput = playerInputReader.JumpInput;
+
+        // 押している間はtrue、離したらfalseを毎回渡す
+        playerMotor2D.SetJumpHeld(currentJumpInput);
+
+        // 今回は押されていて、前回は押されていなかった場合
+        if (currentJumpInput && !jumpInputFlag)
+        {
+            playerMotor2D.SetJumpInput(true);
+        }
+
+        // 次回の比較に使うため、今回の状態を保存
+        jumpInputFlag = currentJumpInput;
+    }
+
+    void UpdateGravityInput()
+    {
+        // 今回の重力入力の状態を取得
+        bool currentGravityInput = playerInputReader.GravityInput != Vector2.zero;
+
+        // 方向入力がある場合のみ、一度だけGravityControllerに重力向きを渡す
+        if (currentGravityInput && !changeGravityInputFlag)
+        {
+            // PlayerInputReaderから入力値を取得してGravityControllerに重力向きを渡す
+            gravityController.SetGravityDirection(playerInputReader.GravityInput);
+        }
+
+        // 次回の比較に使うため、今回の状態を保存
+        changeGravityInputFlag = currentGravityInput;
     }
 }

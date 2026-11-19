@@ -49,6 +49,13 @@ public class PlayerVisualController : MonoBehaviour
 
     private void LateUpdate()
     {
+        UpdateGravityRotation();
+        UpdateFacingDirection();
+        UpdateSquatVisual();
+    }
+
+    void UpdateGravityRotation()
+    {
         // 重力に合わせて、親オブジェクトに対する回転角度で自身を回転
         switch (gravityController.GravityVector)
         {
@@ -72,7 +79,10 @@ public class PlayerVisualController : MonoBehaviour
                 // その他の処理
                 break;
         }
+    }
 
+    void UpdateFacingDirection()
+    {
         // 移動入力に応じてスプライトの向きを変更
         if (moveInput > 0)
         {
@@ -82,8 +92,6 @@ public class PlayerVisualController : MonoBehaviour
         {
             spriteRenderer.flipX = true;
         }
-
-        UpdateSquatVisual();
     }
 
     void UpdateSquatVisual()

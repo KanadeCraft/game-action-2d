@@ -2,136 +2,69 @@ using UnityEngine;
 
 public class PlayerMotor2D : MonoBehaviour
 {
-    // 重力の方向と加速度を取得するためにGravityControllerを参照
+    // Inspectorで設定する参照と調整値。既存のフィールド名を維持
     [SerializeField] GravityController gravityController;
 
-    Rigidbody2D rb2D;
-    float setMoveInput;
-    bool setRunInput;
-    bool setSquatInput;
-    bool setJumpHeld;
-    Vector2 previousGravity;
-
-    BoxCollider2D playerCollider;
-
-    Vector2 originalColliderSize;
-    Vector2 originalColliderOffset;
-
-    
     // 設定一覧
     [Header("移動関連")]
-    [Header("移動速度"), SerializeField]
-    float moveSpeed = 5f;
-    [Header("走る速度"), SerializeField]
-    float runSpeed = 8f;
-    [Header("しゃがみ速度"), SerializeField]
-    float squatSpeed = 2f;
+    [Header("移動速度"), SerializeField] float moveSpeed = 5f;
+    [Header("走る速度"), SerializeField] float runSpeed = 8f;
+    [Header("しゃがみ速度"), SerializeField] float squatSpeed = 2f;
 
     [Header("ジャンプ関連")]
-    [Header("ジャンプ力"), SerializeField]
-    float jumpForce = 5f;
-    // それぞれの最大猶予時間とそれぞれの時間を保持する変数
-    float jumpBufferRemaining;
-    [Header("ジャンプの猶予時間"), SerializeField]
-    float maxJumpBufferTime = 0.1f;
-    float coyoteRemaining;
-    [Header("コヨーテタイム"), SerializeField]
-    float maxCoyoteTime = 0.08f;
+    [Header("ジャンプ力"), SerializeField] float jumpForce = 5f;
+    [Header("ジャンプの猶予時間"), SerializeField] float maxJumpBufferTime = 0.1f;
+    [Header("コヨーテタイム"), SerializeField] float maxCoyoteTime = 0.08f;
     [Header("離したときに残す上向き速度の割合")]
-    [Range(0f, 1f), SerializeField]
-    float jumpCutRatio = 0.5f;
+    [Range(0f, 1f), SerializeField] float jumpCutRatio = 0.5f;
 
-    // このジャンプの上昇を、まだ一度だけ弱められるか
-    bool canCutJump;
-
-    [Header("しゃがみ関連")]
-    [Header("しゃがみ時のColliderの高さ"), SerializeField]
-    float squatColliderHeight = 0.46f;
-    [Header("立ち上がりを妨げるレイヤー"), SerializeField]
-    LayerMask standObstacleMask;
-
-    ContactFilter2D standFilter;
-    Collider2D[] standHits = new Collider2D[8];
-
+    [Header("しゃがみ・頭上関連")]
+    [Header("しゃがみ時のColliderの高さ"), SerializeField] float squatColliderHeight = 0.46f;
+    [Header("立ち上がりを妨げるレイヤー"), SerializeField] LayerMask standObstacleMask;
     // `headVisualPadding` は、今の「見える頭」がColliderより上にはみ出している0.02を補う値。通常は `(1 - 0.96) / 2 = 0.02`、しゃがみも `(0.5 - 0.46) / 2 = 0.02` なので共通にできる。
-    [Header("Colliderの頭から見える頭までの余白"), SerializeField]
-    float headVisualPadding = 0.02f;
+    [Header("Colliderの頭から見える頭までの余白"), SerializeField] float headVisualPadding = 0.02f;
+
     const float ceilingSkin = 0.001f;                   // 検出距離を使い切らず、少し手前で止める余白
     const float minimumJumpSpace = 0.005f;              // これ以下の空きならジャンプを開始しない基準
     const float headBoxThickness = 0.002f;              // 頭の位置に置く検査用の薄い四角の厚み
     const float headSideInset = 0f;                     // 検査幅を狭めない。今回、端から天井の下へ入る検査で幅の必要性を確認した
+
+    // 自身のコンポーネントと、通常姿勢のCollider形状
+    Rigidbody2D rb2D;
+    BoxCollider2D playerCollider;
+    Vector2 originalColliderSize;
+    Vector2 originalColliderOffset;
+
+    // Controllerから受け取る入力。
+    float setMoveInput;
+    bool setRunInput;
+    bool setSquatInput;
+    bool setJumpHeld;
+
+    // 接地・姿勢と、更新をまたいで保持する値
+    bool isGrounded;
+    bool isSquatting;
+    bool ignoreGroundOnce;  // 次の物理更新を保護するフラグ
+    bool canCutJump;        // このジャンプの上昇を、まだ一度だけ弱められるか
+
+    Vector2 groundNormal;
+    Vector2 previousGravity;
+
+    float jumpBufferRemaining;
+    float coyoteRemaining;
+
+    // 頭上検査の条件と結果を再利用する
+    ContactFilter2D standFilter;
+    Collider2D[] standHits = new Collider2D[8];
     RaycastHit2D[] ceilingHits = new RaycastHit2D[8];   //検査結果を入れる8件分の配列
 
-    bool isGrounded;
-    Vector2 groundNonal;
-
-    // 次の物理更新を保護するフラグ
-    bool ignoreGroundOnce;
-
-    // それぞれの行動中のフラグを保持する変数（いつかアニメーション用）
-    bool isStopping;
-    bool isMoving;
-    bool isRunning;
-    bool isJumping;
-    bool isSquatting;
-
     // それぞれの行動中のフラグを外部から取得できるようにするプロパティ
-    public bool IsStopping
-    {
-        get
-        {
-            return isStopping;
-        }
-    }
-
-    public bool IsMoving
-    {
-        get
-        {
-            return isMoving;
-        }
-    }
-
-    public bool IsRunning
-    {
-        get
-        {
-            return isRunning;
-        }
-    }
-
-    public bool IsJumping
-    {
-        get
-        {
-            return isJumping;
-        }
-    }
-
     public bool IsSquatting
     {
         get
         {
             return isSquatting;
         }
-    }
-
-    /// <summary>
-    /// 現在の移動速度を取得する
-    /// </summary>
-    float GetMoveSpeed()
-    {
-        if (isSquatting)
-        {
-            return squatSpeed;
-        }
-
-        if (setRunInput)
-        {
-            return runSpeed;
-        }
-
-        return moveSpeed;
     }
 
     // 箱を押す判定に使う、入力によって移動しようとしている速度。
@@ -145,6 +78,22 @@ public class PlayerMotor2D : MonoBehaviour
             Vector2 right = new Vector2(-gravity.y, gravity.x);
             return right * setMoveInput * GetMoveSpeed();
         }
+    }
+
+    void Awake()
+    {
+        rb2D = GetComponent<Rigidbody2D>();
+        // 初期化処理
+        previousGravity = gravityController.GravityVector;
+        isGrounded = false;
+
+        playerCollider = GetComponent<BoxCollider2D>();
+        originalColliderSize = playerCollider.size;
+        originalColliderOffset = playerCollider.offset;
+
+        standFilter = new ContactFilter2D();
+        standFilter.SetLayerMask(standObstacleMask);
+        standFilter.useTriggers = false;
     }
 
     /// <summary>
@@ -186,66 +135,75 @@ public class PlayerMotor2D : MonoBehaviour
 
     public void SetGroundNormal(Vector2 value)
     {
-        groundNonal = value;
+        groundNormal = value;
     }
 
-    void Awake()
-    {
-        rb2D = GetComponent<Rigidbody2D>();
-        // 初期化処理
-        previousGravity = gravityController.GravityVector;
-        isGrounded = false;
-
-        playerCollider = GetComponent<BoxCollider2D>();
-        originalColliderSize = playerCollider.size;
-        originalColliderOffset = playerCollider.offset;
-
-        standFilter = new ContactFilter2D();
-        standFilter.SetLayerMask(standObstacleMask);
-        standFilter.useTriggers = false;
-    }
-
+    // 1回の物理更新で行う処理
     public void SimulateMovement()
+    {
+        IgnoreGroundAfterJump();
+        UpdateSquatState();
+
+        Vector2 velocity = rb2D.linearVelocity;      // 現在の速度を取得
+        Vector2 gravity = gravityController.GravityVector;  // 現在の重力の方向を取得
+
+
+        velocity = ApplyGravityChange(velocity, gravity);
+        velocity = CalculateMovementVelocity(velocity);
+        velocity = ProcessJumpInput(velocity);
+        UpdateCoyoteTime();
+
+        // 可変ジャンプ適用のため
+        velocity = ApplyVariableJump(velocity);
+        // ジャンプまで含めて作った速度を、頭上の空きに合わせて制限する。
+        velocity = LimitCeilingVelocity(velocity);
+
+        //Rigidbody2Dでの移動処理を行う
+        rb2D.linearVelocity = velocity;
+    }
+
+    void IgnoreGroundAfterJump()
     {
         if (ignoreGroundOnce)
         {
             isGrounded = false;
             ignoreGroundOnce = false;
         }
+    }
 
-        UpdateSquatState();
-
-        // 現在の速度を取得
-        Vector2 currentVelocity = rb2D.linearVelocity;
-        // 現在の重力の方向を取得
-        Vector2 gravity = gravityController.GravityVector;
-
+    Vector2 ApplyGravityChange(Vector2 velocity, Vector2 gravity)
+    {
         if (gravity == -previousGravity)
         {
             canCutJump = false;
             // 重力が180度変化した場合の処理
             // 重力方向の速度を打ち消す
-            float speedAlongGravity = Vector2.Dot(currentVelocity, gravity);
+            float speedAlongGravity = Vector2.Dot(velocity, gravity);
 
             if (speedAlongGravity < 0f)
             {
-                currentVelocity -= gravity * speedAlongGravity; // 重力方向の速度を打ち消す
+                velocity -= gravity * speedAlongGravity; // 重力方向の速度を打ち消す
             }
         }
 
         previousGravity = gravity;
 
+        return velocity;
+    }
+
+    Vector2 CalculateMovementVelocity(Vector2 velocity)
+    {
         // 接地状態の確認と処理
         if (isGrounded)
         {
             canCutJump = false;
             // 接地中の処理
             // 接地中は法線の方向を床と平行にする(右向き)
-            Vector2 groundRight = new Vector2(groundNonal.y, -groundNonal.x);
+            Vector2 groundRight = new Vector2(groundNormal.y, -groundNormal.x);
             Debug.DrawRay(rb2D.position, groundRight * 0.5f, Color.green, Time.fixedDeltaTime);
 
             // その方向・移動入力・移動速度から、currentVelocity全体を決める
-            currentVelocity = groundRight * setMoveInput * GetMoveSpeed();
+            velocity = groundRight * setMoveInput * GetMoveSpeed();
 
             // 接地中はkoyoteTimeをリセットする
             coyoteRemaining = maxCoyoteTime;
@@ -259,19 +217,19 @@ public class PlayerMotor2D : MonoBehaviour
             {
                 case { x: 0, y: 1 }:
                     // 上の処理
-                    currentVelocity.x = -setMoveInput * GetMoveSpeed();
+                    velocity.x = -setMoveInput * GetMoveSpeed();
                     break;
                 case { x: 0, y: -1 }:
                     // 下の処理
-                    currentVelocity.x = setMoveInput * GetMoveSpeed();
+                    velocity.x = setMoveInput * GetMoveSpeed();
                     break;
                 case { x: -1, y: 0 }:
                     // 左の処理
-                    currentVelocity.y = -setMoveInput * GetMoveSpeed();
+                    velocity.y = -setMoveInput * GetMoveSpeed();
                     break;
                 case { x: 1, y: 0 }:
                     // 右の処理
-                    currentVelocity.y = setMoveInput * GetMoveSpeed();
+                    velocity.y = setMoveInput * GetMoveSpeed();
                     break;
                 default:
                     // その他の処理
@@ -280,8 +238,32 @@ public class PlayerMotor2D : MonoBehaviour
 
             // 接地中以外での重力の影響を受ける方向の速度を計算
             Vector2 gravityDeltaVelocity = gravityController.GravityVector * gravityController.GravityAcceleration * Time.fixedDeltaTime;
-            currentVelocity += gravityDeltaVelocity;
+            velocity += gravityDeltaVelocity;
         }
+
+        return velocity;
+    }
+
+    /// <summary>
+    /// 現在の移動速度を取得する
+    /// </summary>
+    float GetMoveSpeed()
+    {
+        if (isSquatting)
+        {
+            return squatSpeed;
+        }
+
+        if (setRunInput)
+        {
+            return runSpeed;
+        }
+
+        return moveSpeed;
+    }
+
+    Vector2 ProcessJumpInput(Vector2 velocity)
+    {
 
         //未処理のジャンプ入力があれば、接地状態を確認してジャンプ処理を行う
         if (jumpBufferRemaining > 0f)
@@ -289,9 +271,9 @@ public class PlayerMotor2D : MonoBehaviour
             if (isGrounded || coyoteRemaining > 0f)
             {
                 // 頭上に最低限の空きがある場合だけ、ジャンプを開始する。
-                if (GetCeilingDistance(currentVelocity, minimumJumpSpace) > minimumJumpSpace)
+                if (GetCeilingDistance(velocity, minimumJumpSpace) > minimumJumpSpace)
                 {
-                    currentVelocity = CalculateJumpVelocity(currentVelocity, isGrounded);
+                    velocity = CalculateJumpVelocity(velocity, isGrounded);
                     canCutJump = true;
                     ignoreGroundOnce = true;
                     coyoteRemaining = 0f;
@@ -306,19 +288,16 @@ public class PlayerMotor2D : MonoBehaviour
             }
         }
 
+        return velocity;
+    }
+
+    void UpdateCoyoteTime()
+    {
         //　ジャンプ予約処理が終わった後
         if (!isGrounded && coyoteRemaining > 0f)
         {
             coyoteRemaining = Mathf.Max(0f, coyoteRemaining - Time.fixedDeltaTime);
         }
-
-        // 可変ジャンプ適用のため
-        currentVelocity = ApplyVariableJump(currentVelocity);
-        // ジャンプまで含めて作った速度を、頭上の空きに合わせて制限する。
-        currentVelocity = LimitCeilingVelocity(currentVelocity);
-
-        //Rigidbody2Dでの移動処理を行う
-        rb2D.linearVelocity = currentVelocity;
     }
 
     Vector2 CalculateJumpVelocity(Vector2 velocity, bool groundedAtTakeoff)
@@ -374,6 +353,86 @@ public class PlayerMotor2D : MonoBehaviour
         return velocity + up * (remainingUpSpeed - upSpeed);
     }
 
+    // しゃがみ状態の更新
+    void UpdateSquatState()
+    {
+        bool nextSquatState = isGrounded && setSquatInput;
+
+        // しゃがみを解除したくても、頭上が塞がっていれば維持する
+        if (isSquatting && !nextSquatState)
+        {
+            if (!CanStandUp())
+            {
+                nextSquatState = true;
+            }
+        }
+
+        // 状態が変わっていなければ、Colliderの変更も不要
+        if (isSquatting == nextSquatState)
+        {
+            return;
+        }
+
+        isSquatting = nextSquatState;
+        ApplySquatCollider();
+    }
+
+    void ApplySquatCollider()
+    {
+        Vector2 colliderSize = originalColliderSize;
+        Vector2 colliderOffset = originalColliderOffset;
+
+        if (isSquatting)
+        {
+            // しゃがみ時のColliderの高さを計算
+            // colliderSize.y = originalColliderSize.y * squatHeightRatio;
+            colliderSize.y = squatColliderHeight;
+
+            float heightDifference =
+                originalColliderSize.y - colliderSize.y;
+
+            colliderOffset.y -= heightDifference / 2f;
+        }
+
+        playerCollider.size = colliderSize;
+        playerCollider.offset = colliderOffset;
+    }
+
+    bool CanStandUp()
+    {
+        // しゃがみ状態から立ち上がれるかどうかを判定する
+        // float squatHeight = originalColliderSize.y * squatHeightRatio;
+        float squatHeight = squatColliderHeight;
+
+        float addedHeight = originalColliderSize.y - squatHeight;
+
+        if (addedHeight <= 0f)
+        {
+            return true;
+        }
+
+        // 立つときに増える、頭上の範囲
+        Vector2 localCheckCenter = originalColliderOffset + Vector2.up * (squatHeight / 2f);
+
+        Vector2 checkCenter = transform.TransformPoint(localCheckCenter);
+
+        Vector2 checkSize = new Vector2(originalColliderSize.x, addedHeight);
+
+        // Colliderのローカルサイズを、ワールドのサイズへ変換
+        Vector3 worldScale = transform.lossyScale;
+
+        checkSize.x *= Mathf.Abs(worldScale.x);
+        checkSize.y *= Mathf.Abs(worldScale.y);
+
+        // 境界に触れるだけで判定されにくいよう、少し内側を調べる
+        checkSize.x = Mathf.Max(0.001f, checkSize.x - 0.02f);
+        checkSize.y = Mathf.Max(0.001f, checkSize.y - 0.02f);
+
+        int hitCount = Physics2D.OverlapBox(checkCenter, checkSize, 0f, standFilter, standHits);
+
+        return hitCount == 0;
+    }
+
     // 現在位置と横移動先の頭上を調べて、使える距離を返す
     float GetCeilingDistance(Vector2 velocity, float checkDistance)
     {
@@ -400,7 +459,7 @@ public class PlayerMotor2D : MonoBehaviour
         for (int sample = 0; sample < 2; sample++)
         {
             Vector2 origin = headPosition + sideStep * sample;
-            // 頭上に当たり判定用Box（SizeはcheckSize）を生成、角度無し、特定のフィルター（今回はGround）で当たったものはceilingHitsに格納、判定は重力的上方向に（上に進もうとする距離+(一応)天井との間に残したい余白）
+            // 現在位置または横移動先から、頭上の障害物を検査する。
             int count = Physics2D.BoxCast(origin, checkSize, 0f, up, standFilter, ceilingHits, checkDistance + ceilingSkin);
             for (int i = 0; i < count; i++)
             {
@@ -445,85 +504,5 @@ public class PlayerMotor2D : MonoBehaviour
         float allowedDistance = GetCeilingDistance(velocity, upSpeed * Time.fixedDeltaTime);
         float allowedSpeed = Mathf.Min(upSpeed, allowedDistance / Time.fixedDeltaTime);
         return velocity + up * (allowedSpeed - upSpeed);
-    }
-
-    void ApplySquatCollider()
-    {
-        Vector2 colliderSize = originalColliderSize;
-        Vector2 colliderOffset = originalColliderOffset;
-
-        if (isSquatting)
-        {
-            // しゃがみ時のColliderの高さを計算
-            // colliderSize.y = originalColliderSize.y * squatHeightRatio;
-            colliderSize.y = squatColliderHeight;
-
-            float heightDifference =
-                originalColliderSize.y - colliderSize.y;
-
-            colliderOffset.y -= heightDifference / 2f;
-        }
-
-        playerCollider.size = colliderSize;
-        playerCollider.offset = colliderOffset;
-    }
-
-    bool CanStandUp()
-    {
-        // しゃがみ状態から立ち上がれるかどうかを判定する
-        // float squatHeight = originalColliderSize.y * squatHeightRatio;
-        float squatHeight = squatColliderHeight;
-
-        float addedHeight = originalColliderSize.y - squatHeight;
-
-        if (addedHeight <= 0f)
-        {
-            return true;
-        }
-
-        // 立つときに増える、頭上の範囲
-        Vector2 localCheckCenter = originalColliderOffset + Vector2.up * (squatHeight / 2f);
-
-        Vector2 checkCenter = transform.TransformPoint(localCheckCenter);
-
-        Vector2 checkSize = new Vector2( originalColliderSize.x, addedHeight);
-
-        // Colliderのローカルサイズを、ワールドのサイズへ変換
-        Vector3 worldScale = transform.lossyScale;
-
-        checkSize.x *= Mathf.Abs(worldScale.x);
-        checkSize.y *= Mathf.Abs(worldScale.y);
-
-        // 境界に触れるだけで判定されにくいよう、少し内側を調べる
-        checkSize.x = Mathf.Max(0.001f, checkSize.x - 0.02f);
-        checkSize.y = Mathf.Max(0.001f, checkSize.y - 0.02f);
-
-        int hitCount = Physics2D.OverlapBox(checkCenter, checkSize, 0f, standFilter, standHits);
-
-        return hitCount == 0;
-    }
-
-    // しゃがみ状態の更新
-    void UpdateSquatState()
-    {
-        bool nextSquatState = isGrounded && setSquatInput;
-
-        // しゃがみを解除したくても、頭上が塞がっていれば維持する
-        if (isSquatting && !nextSquatState)
-        {
-            if (!CanStandUp())
-            {
-                nextSquatState = true;
-            }
-        }
-
-        // 状態が変わっていなければ、Colliderの変更も不要
-        if (isSquatting == nextSquatState)
-        {
-            return;
-        }
-
-        isSquatting = nextSquatState;
-        ApplySquatCollider();
     }
 }
