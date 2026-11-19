@@ -9,6 +9,7 @@ public class PlayerMotor2D : MonoBehaviour
     float setMoveInput;
     bool setRunInput;
     bool setSquatInput;
+    bool setJumpHeld;
     Vector2 previousGravity;
 
     BoxCollider2D playerCollider;
@@ -16,14 +17,8 @@ public class PlayerMotor2D : MonoBehaviour
     Vector2 originalColliderSize;
     Vector2 originalColliderOffset;
 
-    // それぞれの最大猶予時間とそれぞれの時間を保持する変数
-    float jumpBufferRemaining;
-    [Header("ジャンプの猶予時間"), SerializeField]
-    float maxJumpBufferTime = 0.1f;
-    float coyoteRemaining;
-    [Header("コヨーテタイム"), SerializeField]
-    float maxCoyoteTime = 0.08f;
-
+    
+    // 設定一覧
     [Header("移動関連")]
     [Header("移動速度"), SerializeField]
     float moveSpeed = 5f;
@@ -35,7 +30,21 @@ public class PlayerMotor2D : MonoBehaviour
     [Header("ジャンプ関連")]
     [Header("ジャンプ力"), SerializeField]
     float jumpForce = 5f;
+    // それぞれの最大猶予時間とそれぞれの時間を保持する変数
+    float jumpBufferRemaining;
+    [Header("ジャンプの猶予時間"), SerializeField]
+    float maxJumpBufferTime = 0.1f;
+    float coyoteRemaining;
+    [Header("コヨーテタイム"), SerializeField]
+    float maxCoyoteTime = 0.08f;
+    [Header("離したときに残す上向き速度の割合")]
+    [Range(0f, 1f), SerializeField]
+    float jumpCutRatio = 0.5f;
 
+    // このジャンプの上昇を、まだ一度だけ弱められるか
+    bool canCutJump;
+
+    [Header("しゃがみ関連")]
     [Header("しゃがみ時のColliderの高さ"), SerializeField]
     float squatColliderHeight = 0.46f;
     [Header("立ち上がりを妨げるレイヤー"), SerializeField]
@@ -165,6 +174,11 @@ public class PlayerMotor2D : MonoBehaviour
         }
     }
 
+    public void SetJumpHeld(bool value)
+    {
+        setJumpHeld = value;
+    }
+
     public void SetIsGrounded(bool value)
     {
         isGrounded = value;
@@ -208,6 +222,7 @@ public class PlayerMotor2D : MonoBehaviour
 
         if (gravity == -previousGravity)
         {
+            canCutJump = false;
             // 重力が180度変化した場合の処理
             // 重力方向の速度を打ち消す
             float speedAlongGravity = Vector2.Dot(currentVelocity, gravity);
@@ -223,6 +238,7 @@ public class PlayerMotor2D : MonoBehaviour
         // 接地状態の確認と処理
         if (isGrounded)
         {
+            canCutJump = false;
             // 接地中の処理
             // 接地中は法線の方向を床と平行にする(右向き)
             Vector2 groundRight = new Vector2(groundNonal.y, -groundNonal.x);
@@ -276,6 +292,7 @@ public class PlayerMotor2D : MonoBehaviour
                 if (GetCeilingDistance(currentVelocity, minimumJumpSpace) > minimumJumpSpace)
                 {
                     currentVelocity = CalculateJumpVelocity(currentVelocity, isGrounded);
+                    canCutJump = true;
                     ignoreGroundOnce = true;
                     coyoteRemaining = 0f;
                 }
@@ -295,6 +312,8 @@ public class PlayerMotor2D : MonoBehaviour
             coyoteRemaining = Mathf.Max(0f, coyoteRemaining - Time.fixedDeltaTime);
         }
 
+        // 可変ジャンプ適用のため
+        currentVelocity = ApplyVariableJump(currentVelocity);
         // ジャンプまで含めて作った速度を、頭上の空きに合わせて制限する。
         currentVelocity = LimitCeilingVelocity(currentVelocity);
 
@@ -323,6 +342,36 @@ public class PlayerMotor2D : MonoBehaviour
         velocity += up * (jumpForce / rb2D.mass);
 
         return velocity;
+    }
+
+    Vector2 ApplyVariableJump(Vector2 velocity)
+    {
+        if (!canCutJump)
+        {
+            return velocity;
+        }
+
+        Vector2 up = -gravityController.GravityVector.normalized;
+        float upSpeed = Vector2.Dot(velocity, up);
+
+        // 頂点や下降に入ったら、このジャンプの可変制御は終了
+        if (upSpeed <= 0f)
+        {
+            canCutJump = false;
+            return velocity;
+        }
+
+        // 押している間は、通常の上昇を続ける
+        if (setJumpHeld)
+        {
+            return velocity;
+        }
+
+        // 離したときに、一度だけ上向き速度を弱める
+        canCutJump = false;
+
+        float remainingUpSpeed = upSpeed * jumpCutRatio;
+        return velocity + up * (remainingUpSpeed - upSpeed);
     }
 
     // 現在位置と横移動先の頭上を調べて、使える距離を返す

@@ -49,6 +49,9 @@ public class PlayerController : MonoBehaviour
         // 今回のボタンの状態を取得
         bool currentJumpInput = playerInputReader.JumpInput;
 
+        // 押している間はtrue、離したらfalseを毎回渡す
+        playerMotor2D.SetJumpHeld(currentJumpInput);
+
         // 今回は押されていて、前回は押されていなかった場合
         if (currentJumpInput && !jumpInputFlag)
         {
