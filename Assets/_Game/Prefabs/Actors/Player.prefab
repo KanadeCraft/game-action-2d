@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 6667645304449779014}
   - component: {fileID: 1421230409553849480}
   - component: {fileID: 1478694779619552050}
+  - component: {fileID: 1192429630356105561}
   m_Layer: 0
   m_Name: Visual
   m_TagString: Untagged
@@ -105,6 +106,30 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerVisualController
   gravityController: {fileID: 0}
+  visualBodyHeight: 1
+  squatHeightRatio: 0.5
+--- !u!95 &1192429630356105561
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4613632053344379964}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: d88988b58d0bf5f488a0b13330dd2a69, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
 --- !u!1 &6433283697719083271
 GameObject:
   m_ObjectHideFlags: 0
@@ -273,6 +298,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerController
   gravityController: {fileID: 0}
   visualController: {fileID: 1478694779619552050}
+  stageController: {fileID: 0}
 --- !u!114 &334493294766210618
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -286,10 +312,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMotor2D
   gravityController: {fileID: 0}
+  moveSpeed: 5
+  runSpeed: 8
+  squatSpeed: 2
+  jumpForce: 5
   maxJumpBufferTime: 0.12
   maxCoyoteTime: 0.1
-  moveSpeed: 5
-  jumpForce: 5
+  jumpCutRatio: 0.5
+  squatColliderHeight: 0.46
+  standObstacleMask:
+    serializedVersion: 2
+    m_Bits: 128
+  headVisualPadding: 0.02
 --- !u!114 &173996005268381073
 MonoBehaviour:
   m_ObjectHideFlags: 0

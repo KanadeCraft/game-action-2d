@@ -37,7 +37,7 @@ public class PlayerVisualController : MonoBehaviour
         isSquatting = value;
     }
 
-    public void SetAnimationState(bool grounded, Vector2 velocity)
+    public void SetAnimationState(bool grounded, Vector2 velocity, bool runHeld)
     {
         Vector2 up = -gravityController.GravityVector.normalized;
         Vector2 right = new Vector2(up.y, -up.x);
@@ -49,6 +49,7 @@ public class PlayerVisualController : MonoBehaviour
         animator.SetFloat("Speed", horizontalSpeed);
         animator.SetFloat("UpSpeed", upSpeed);
         animator.SetBool("Squatting", isSquatting);
+        animator.SetBool("RunHeld", runHeld);
     }
 
     void Awake()
