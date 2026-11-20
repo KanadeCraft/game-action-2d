@@ -146,6 +146,7 @@ GameObject:
   - component: {fileID: 1707270714858489997}
   - component: {fileID: 334493294766210618}
   - component: {fileID: 173996005268381073}
+  - component: {fileID: 2600727483043725089}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -341,3 +342,16 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 128
   maxGroundAngle: 45
+--- !u!114 &2600727483043725089
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6433283697719083271}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 063c060f96d5eb144b28425ccc1a70f8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerHealth
+  maxHealth: 3
