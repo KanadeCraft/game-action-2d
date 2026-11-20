@@ -15,6 +15,14 @@ public class PlayerVisualController : MonoBehaviour
     SpriteRenderer spriteRenderer;
     Animator animator;
 
+    [Header("点滅の切り替え間隔"), Min(0.01f), SerializeField]
+    float blinkInterval = 0.1f;
+
+    Color originalColor;
+    bool isInvincible;
+    bool isFaded;
+    float blinkRemaining;
+
     // 移動入力の値を保持する変数
     float moveInput;
 
@@ -35,6 +43,11 @@ public class PlayerVisualController : MonoBehaviour
     public void SetSquatState(bool value)
     {
         isSquatting = value;
+    }
+
+    public void SetInvincibleState(bool value)
+    {
+        isInvincible = value;
     }
 
     public void SetAnimationState(bool grounded, Vector2 velocity, bool runHeld)
@@ -62,6 +75,8 @@ public class PlayerVisualController : MonoBehaviour
 
         // 透明な余白を除いた、本体の高さを使う
         originalHeight = visualBodyHeight * originalScale.y;
+
+        originalColor = spriteRenderer.color;
     }
 
     private void LateUpdate()
@@ -69,6 +84,7 @@ public class PlayerVisualController : MonoBehaviour
         UpdateGravityRotation();
         UpdateFacingDirection();
         UpdateSquatVisual();
+        UpdateInvincibleVisual();
     }
 
     void UpdateGravityRotation()
@@ -133,5 +149,34 @@ public class PlayerVisualController : MonoBehaviour
         Vector3 localDown = transform.localRotation * Vector3.down;
         visualPosition += localDown * (heightDifference / 2f);
         transform.localPosition = visualPosition;
+    }
+
+    void UpdateInvincibleVisual()
+    {
+        Color color = originalColor;
+
+        if (isInvincible)
+        {
+            blinkRemaining -= Time.deltaTime;
+
+            if (blinkRemaining <= 0f)
+            {
+                isFaded = !isFaded;
+                blinkRemaining = blinkInterval;
+            }
+
+            if (isFaded)
+            {
+                color.a = originalColor.a * 0.35f;
+            }
+        }
+        else
+        {
+            // 次に被弾したとき、最初から点滅させる
+            blinkRemaining = 0f;
+            isFaded = false;
+        }
+
+        spriteRenderer.color = color;
     }
 }

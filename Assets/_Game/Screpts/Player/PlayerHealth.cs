@@ -44,4 +44,15 @@ public class PlayerHealth : MonoBehaviour
 
         Debug.Log($"ダメージを受けた：HP {currentHealth}/{maxHealth}");
     }
+
+    /// <summary>
+    /// 外部から参照できるようにするメソッド 
+    /// </summary>
+    public bool IsInvincible
+    {
+        get
+        {
+            return invincibleRemaining > 0f;
+        }
+    }
 }

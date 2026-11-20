@@ -5,6 +5,7 @@ public class PlayerController : MonoBehaviour
     GroundDetector2D groundDetector2D;
     PlayerInputReader playerInputReader;
     PlayerMotor2D playerMotor2D;
+    PlayerHealth playerHealth;
     [SerializeField] GravityController gravityController;
 
     [SerializeField] PlayerVisualController visualController;
@@ -23,6 +24,7 @@ public class PlayerController : MonoBehaviour
         groundDetector2D = GetComponent<GroundDetector2D>();
         playerInputReader = GetComponent<PlayerInputReader>();
         playerMotor2D = GetComponent<PlayerMotor2D>();
+        playerHealth = GetComponent<PlayerHealth>();
 
         jumpInputFlag = false;
         changeGravityInputFlag = false;
@@ -36,6 +38,7 @@ public class PlayerController : MonoBehaviour
         UpdateGravityInput();
         visualController.SetDirection(playerInputReader.MoveInput);
         visualController.SetAnimationState(playerMotor2D.IsGrounded, playerMotor2D.Velocity, playerInputReader.RunInput);
+        visualController.SetInvincibleState(playerHealth.IsInvincible);
     }
 
     void FixedUpdate()
