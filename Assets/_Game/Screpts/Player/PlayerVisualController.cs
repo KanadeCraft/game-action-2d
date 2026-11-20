@@ -13,6 +13,7 @@ public class PlayerVisualController : MonoBehaviour
     Vector3 originalPosition;
     float originalHeight;
     SpriteRenderer spriteRenderer;
+    Animator animator;
 
     // à⁄ìÆì¸óÕÇÃílÇï€éùÇ∑ÇÈïœêî
     float moveInput;
@@ -36,9 +37,24 @@ public class PlayerVisualController : MonoBehaviour
         isSquatting = value;
     }
 
+    public void SetAnimationState(bool grounded, Vector2 velocity)
+    {
+        Vector2 up = -gravityController.GravityVector.normalized;
+        Vector2 right = new Vector2(up.y, -up.x);
+
+        float horizontalSpeed = Mathf.Abs(Vector2.Dot(velocity, right));
+        float upSpeed = Vector2.Dot(velocity, up);
+
+        animator.SetBool("Grounded", grounded);
+        animator.SetFloat("Speed", horizontalSpeed);
+        animator.SetFloat("UpSpeed", upSpeed);
+        animator.SetBool("Squatting", isSquatting);
+    }
+
     void Awake()
     {
         spriteRenderer = GetComponent<SpriteRenderer>();
+        animator = GetComponent<Animator>();
 
         originalScale = transform.localScale;
         originalPosition = transform.localPosition;
@@ -113,7 +129,8 @@ public class PlayerVisualController : MonoBehaviour
         float heightDifference = originalHeight * (1f - heightRatio);
 
         Vector3 visualPosition = originalPosition;
-        visualPosition.y -= heightDifference / 2f;
+        Vector3 localDown = transform.localRotation * Vector3.down;
+        visualPosition += localDown * (heightDifference / 2f);
         transform.localPosition = visualPosition;
     }
 }

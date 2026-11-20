@@ -35,6 +35,7 @@ public class PlayerController : MonoBehaviour
         UpdateJumpInput();
         UpdateGravityInput();
         visualController.SetDirection(playerInputReader.MoveInput);
+        visualController.SetAnimationState(playerMotor2D.IsGrounded, playerMotor2D.Velocity);
     }
 
     void FixedUpdate()

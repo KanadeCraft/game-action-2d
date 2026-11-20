@@ -59,6 +59,22 @@ public class PlayerMotor2D : MonoBehaviour
     RaycastHit2D[] ceilingHits = new RaycastHit2D[8];   //検査結果を入れる8件分の配列
 
     // それぞれの行動中のフラグを外部から取得できるようにするプロパティ
+    public bool IsGrounded
+    {
+        get
+        {
+            return isGrounded && !ignoreGroundOnce;
+        }
+    }
+
+    public Vector2 Velocity
+    {
+        get
+        {
+            return rb2D.linearVelocity;
+        }
+    }
+
     public bool IsSquatting
     {
         get
@@ -368,7 +384,7 @@ public class PlayerMotor2D : MonoBehaviour
         }
 
         // 状態が変わっていなければ、Colliderの変更も不要
-        if (isSquatting == nextSquatState)
+        if (isSquatting == nextSquatState && gravityController.GravityVector == previousGravity)
         {
             return;
         }
@@ -384,14 +400,26 @@ public class PlayerMotor2D : MonoBehaviour
 
         if (isSquatting)
         {
-            // しゃがみ時のColliderの高さを計算
-            // colliderSize.y = originalColliderSize.y * squatHeightRatio;
-            colliderSize.y = squatColliderHeight;
+            // Player自身の座標で見た重力方向の取得
+            Vector2 localGravity = transform.InverseTransformDirection(gravityController.GravityVector.normalized);
+            bool vertical = Mathf.Abs(localGravity.y) > 0.5f;
+            float originalHeight;
 
-            float heightDifference =
-                originalColliderSize.y - colliderSize.y;
+            if (vertical)
+            {
+                // 重力が上下の場合
+                originalHeight = originalColliderSize.y;
+                colliderSize.y = squatColliderHeight;
+            }
+            else
+            {
+                // 重力が左右の場合
+                originalHeight = originalColliderSize.x;
+                colliderSize.x = squatColliderHeight;
+            }
 
-            colliderOffset.y -= heightDifference / 2f;
+            float heightDifference = originalHeight - squatColliderHeight;
+            colliderOffset += localGravity * (heightDifference / 2f);
         }
 
         playerCollider.size = colliderSize;
@@ -401,35 +429,33 @@ public class PlayerMotor2D : MonoBehaviour
     bool CanStandUp()
     {
         // しゃがみ状態から立ち上がれるかどうかを判定する
-        // float squatHeight = originalColliderSize.y * squatHeightRatio;
-        float squatHeight = squatColliderHeight;
+        Vector2 localGravity = transform.InverseTransformDirection(gravityController.GravityVector.normalized);
+        bool vertical = Mathf.Abs(localGravity.y) > 0.5f;
+        float originalHeight;
+        Vector2 checkSize = originalColliderSize;
 
-        float addedHeight = originalColliderSize.y - squatHeight;
-
-        if (addedHeight <= 0f)
+        if (vertical)
         {
-            return true;
+            originalHeight = originalColliderSize.y;
+            checkSize.y = originalHeight - squatColliderHeight;
+        }
+        else
+        {
+            originalHeight = originalColliderSize.x;
+            checkSize.x = originalHeight - squatColliderHeight;
         }
 
-        // 立つときに増える、頭上の範囲
-        Vector2 localCheckCenter = originalColliderOffset + Vector2.up * (squatHeight / 2f);
+        if (originalHeight <= squatColliderHeight) return true;
 
+        Vector2 localCheckCenter = originalColliderOffset - localGravity * (squatColliderHeight / 2f);
         Vector2 checkCenter = transform.TransformPoint(localCheckCenter);
-
-        Vector2 checkSize = new Vector2(originalColliderSize.x, addedHeight);
-
-        // Colliderのローカルサイズを、ワールドのサイズへ変換
         Vector3 worldScale = transform.lossyScale;
-
         checkSize.x *= Mathf.Abs(worldScale.x);
         checkSize.y *= Mathf.Abs(worldScale.y);
-
-        // 境界に触れるだけで判定されにくいよう、少し内側を調べる
         checkSize.x = Mathf.Max(0.001f, checkSize.x - 0.02f);
         checkSize.y = Mathf.Max(0.001f, checkSize.y - 0.02f);
 
-        int hitCount = Physics2D.OverlapBox(checkCenter, checkSize, 0f, standFilter, standHits);
-
+        int hitCount = Physics2D.OverlapBox(checkCenter, checkSize, transform.eulerAngles.z, standFilter, standHits);
         return hitCount == 0;
     }
 
