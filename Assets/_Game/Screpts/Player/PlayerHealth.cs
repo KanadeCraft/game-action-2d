@@ -17,7 +17,7 @@ public class PlayerHealth : MonoBehaviour
 
     private void Update()
     {
-        if(invincibleRemaining > 0f)
+        if (invincibleRemaining > 0f)
         {
             invincibleRemaining = Mathf.Max(0f, invincibleRemaining - Time.deltaTime);
         }
@@ -26,13 +26,13 @@ public class PlayerHealth : MonoBehaviour
     public void TakeDamage(int damage)
     {
         // HPが0，又はダメージが正の数で泣けて場受け付けない
-        if(currentHealth <= 0 || damage <= 0)
+        if (currentHealth <= 0 || damage <= 0)
         {
             return;
         }
 
         // 無敵時間が残っていればダメージを受けない
-        if(invincibleRemaining > 0f)
+        if (invincibleRemaining > 0f)
         {
             return;
         }
@@ -53,6 +53,14 @@ public class PlayerHealth : MonoBehaviour
         get
         {
             return invincibleRemaining > 0f;
+        }
+    }
+
+    public bool IsDead
+    {
+        get
+        {
+            return currentHealth <= 0;
         }
     }
 }

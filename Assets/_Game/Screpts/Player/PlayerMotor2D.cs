@@ -154,6 +154,20 @@ public class PlayerMotor2D : MonoBehaviour
         groundNormal = value;
     }
 
+    public void StopMovement()
+    {
+        setMoveInput = 0f;
+        setRunInput = false;
+        setSquatInput = false;
+        setJumpHeld = false;
+
+        jumpBufferRemaining = 0f;
+        coyoteRemaining = 0f;
+        canCutJump = false;
+
+        rb2D.linearVelocity = Vector2.zero;
+    }
+
     // 1回の物理更新で行う処理
     public void SimulateMovement()
     {

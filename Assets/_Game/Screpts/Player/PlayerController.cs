@@ -19,6 +19,12 @@ public class PlayerController : MonoBehaviour
     //重力入力のフラグを保持する変数
     bool changeGravityInputFlag;
 
+    [Header("死亡からリスタートまでの時間"), Min(0f), SerializeField]
+    float deathRestartDelay = 1f;
+
+    bool hasStartedDeath;
+    float deathRestartRemaining;
+
     void Awake()
     {
         groundDetector2D = GetComponent<GroundDetector2D>();
@@ -33,6 +39,13 @@ public class PlayerController : MonoBehaviour
     void Update()
     {
         HandleRestartInput();
+
+        if(playerHealth.IsDead)
+        {
+            UpdateDeath();
+            return;
+        }
+
         UpdateMovementInput();
         UpdateJumpInput();
         UpdateGravityInput();
@@ -43,6 +56,12 @@ public class PlayerController : MonoBehaviour
 
     void FixedUpdate()
     {
+        if (playerHealth.IsDead)
+        {
+            playerMotor2D.StopMovement();
+            return;
+        }
+
         // CheckGroundの呼び出し
         groundDetector2D.CheckGround();
 
@@ -111,5 +130,30 @@ public class PlayerController : MonoBehaviour
 
         // 次回の比較に使うため、今回の状態を保存
         changeGravityInputFlag = currentGravityInput;
+    }
+
+    void UpdateDeath()
+    {
+        // 死亡した最初の１回だけ行う
+        if (!hasStartedDeath)
+        {
+            hasStartedDeath = true;
+            deathRestartRemaining = deathRestartDelay;
+
+            playerMotor2D.StopMovement();
+
+            visualController.SetInvincibleState(false);
+            visualController.SetDirection(0f);
+            visualController.SetAnimationState(playerMotor2D.IsGrounded, Vector2.zero, false);
+
+            Debug.Log("HPが0になった：死亡");
+        }
+
+        deathRestartRemaining = Mathf.Max(0f, deathRestartRemaining - Time.deltaTime);
+
+        if (deathRestartRemaining <= 0f)
+        {
+            stageController.RestartStage();
+        }
     }
 }
